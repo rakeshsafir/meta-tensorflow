@@ -7,6 +7,43 @@ echo "Setting up RPi-Yocto in [$CUR_DIR]"
 mkdir -p $YOCTO_DIR_NAME
 cd $YOCTO_DIR_NAME
 
+# Install package dependencies if not already installed...
+PACKAGE_LIST=(build-essential
+ chrpath
+ diffstat
+ libncurses5-dev
+ texinfo
+ python2.7
+)
+
+install_deps() {
+    for(( i=0; i<${#PACKAGE_LIST[@]} ; ++i )) ; do
+        echo -n "Checking ["$((i+1))"/${#PACKAGE_LIST[@]}]:{${PACKAGE_LIST[$i]}} => "
+        if [[ -z $(dpkg -l | grep ${PACKAGE_LIST[$i]} | awk '{print $2, $3}') ]]; then
+            echo "Need to install dependencies..."
+                echo -n "Installing [${PACKAGE_LIST[$i]}]..."
+            apt-get install -y ${PACKAGE_LIST[$i]} &> /dev/null
+            if [[ $? -eq 0 ]]; then
+                echo "Success..."
+            else
+                echo "Failed..."
+                return 1
+            fi
+        else
+            echo "Installed..."
+        fi
+    done
+    return 0
+}
+
+echo "Installing package dependencies..."
+install_deps
+if test $? -ne 0; then
+    echo 'Installing package dependencies...Failed...'
+    exit 1
+fi
+sudo ln -sf /usr/bin/python2.7 /usr/bin/python
+
 echo -ne "Cloning ==>\e[34m poky\e[0m              Branch:\e[33m[rocko]\e[0m..."
 git clone -b rocko git://git.yoctoproject.org/poky.git &> /dev/null
 if test $? -ne 0; then
